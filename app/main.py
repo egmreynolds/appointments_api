@@ -88,7 +88,10 @@ async def cancel_appointment(user_id: str, date : datetime.date, db = Depends(ge
     Return Bool
     """
     output = crud.delete_appointment(db = db, user_id = user_id, date = date)
-    return {"msg" : "Booking Deleted", "data" : output}
+    if output:
+        return {"msg" : "Booking Deleted", "data" : output}
+    
+    return {"msg" : "No booking deleted", "data" : None}
 
 
 def check_appointment_valid(appointment: schemas.AppointmentCreate):
