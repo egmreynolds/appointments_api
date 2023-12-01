@@ -5,7 +5,6 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 
-
 from . import crud, models, schemas
 from .database import SessionLocal, engine
 
@@ -18,6 +17,7 @@ async def lifespan(app: FastAPI):
     pass
 
 app = FastAPI(lifespan = lifespan)
+
 # Dependency
 def get_db():
     db = SessionLocal()

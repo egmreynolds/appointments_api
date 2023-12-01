@@ -7,8 +7,8 @@ from sqlalchemy.pool import StaticPool
 
 from .main import app, get_db
 from . import models
-from .database import engine, SessionLocal
-from .schemas import AppointmentCreate
+from .database import engine
+
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"  # IN-MEMORY seems to fail all tests...
 engine = create_engine(
@@ -98,6 +98,15 @@ def test_book_appointment_user_already_booked():
     assert response.status_code == 200
     assert response.json()["msg"] == "Booking not available, User is already booked"
     assert response.json()["data"] == None
+    
+def test_book_appointment_invalid_values():
+    """
+    Test if user_id isn't a string
+    """
+    response = client.post("/appointment/book/", json = {"user_id" : 123, "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(2)), "start_time" : str(datetime.time(10,00)), "end_time" : str(datetime.time(10, 30))})
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == 'Input should be a valid string'
+
 # Test Get/Check
  
 def test_get_appointments():   
