@@ -10,6 +10,9 @@ fastapi, uvicorn[standard], sqlalchemy
 ```
 git clone https://github.com/egmreynolds/appointments_api.git
 cd appointments_api
+python -m venv venv 
+. venv/Scripts/activate #windows
+# ./venv/bin/activate #unix
 pip install -r requirements.txt
 
 uvicorn app.main:app --reload
