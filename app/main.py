@@ -96,10 +96,8 @@ def check_appointment_valid(appointment: schemas.AppointmentCreate):
     Function to check the AppointmentCreate Object is valid
     - Start_Time < End_Time
     - Start_Time > Time_Now
+        NOTE: While these datetime's work, there may be issues with timezone that have not been resolved.
     """
-    print("################")
-    print(datetime.datetime.combine(appointment.date, appointment.start_time, tzinfo= None))
-    print(datetime.datetime.now())
     if appointment.start_time > appointment.end_time:
         return (False, "Appointment start-time must be before appointment end-time.")
     if datetime.datetime.combine(appointment.date, appointment.start_time, tzinfo = None) < datetime.datetime.now():
