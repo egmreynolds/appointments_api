@@ -47,10 +47,19 @@ def test_book_appointment():
     """
     Test Booking a simple appointment 1 day in the future
     """
-    response = client.post("/appointment/book/", json = {"user_id" : "User1", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(1)), "start_time" : str(datetime.time(12,00)), "end_time" : str(datetime.time(12, 30))})  
+    response = client.post("/appointment/book/", json = {"user_id" : "User1", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(1)), "start_time" : str(datetime.time(12,00)), "end_time" : str(datetime.time(12, 15))})  
     assert response.status_code == 200
     assert response.json()["msg"] == "Booking Successful"
     assert response.json()["data"]["user_id"] == "User1"
+
+
+def test_book_appointment_too_long():  
+    """
+    Test Booking a simple appointment 1 day in the future that is longer than max appointment length
+    """
+    response = client.post("/appointment/book/", json = {"user_id" : "User1_0", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(1)), "start_time" : str(datetime.time(15,00)), "end_time" : str(datetime.time(15, 30))})  
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == 'Value error, Appointment duration must be 15 minutes or less'
     
 def test_book_appointment_multiple():
     """
@@ -58,7 +67,7 @@ def test_book_appointment_multiple():
     """
     responses = []
     for i in range(5):
-        response = client.post("/appointment/book/", json = {"user_id" : f"User2_{i}", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(1)), "start_time" : str(datetime.time(13,00)), "end_time" : str(datetime.time(13, 30))})
+        response = client.post("/appointment/book/", json = {"user_id" : f"User2_{i}", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(1)), "start_time" : str(datetime.time(13,00)), "end_time" : str(datetime.time(13, 15))})
         assert response.status_code == 200
         responses.append(response)
         
@@ -70,31 +79,30 @@ def test_book_appointment_in_past():
     """
     Test booking an appointment in the past does not book an appointment
     """
-    response = client.post("/appointment/book/", json = {"user_id" : "User3", "description" : "Vaccine", "date"  : str(datetime.date(2023, 11, 30)), "start_time" : str(datetime.time(8,00)), "end_time" : str(datetime.time(8, 30))})  
-    assert response.status_code == 200
-    assert response.json()["msg"] == "Appointment start-time must be in the future."
-    assert response.json()["data"] == None
+    response = client.post("/appointment/book/", json = {"user_id" : "User3", "description" : "Vaccine", "date"  : str(datetime.date(2023, 11, 30)), "start_time" : str(datetime.time(8,00)), "end_time" : str(datetime.time(8, 15))})  
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == 'Value error, Date must be today or a future date'
+    assert KeyError
 #    
 def test_book_appointment_end_before_start():
     """
     Test booking an invalid appointment (start_time > end_time) doesn't book an appointment
     """
-    response = client.post("/appointment/book/", json = {"user_id" : "User4", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(1)), "start_time" : str(datetime.time(9,00)), "end_time" : str(datetime.time(8, 30))})  
-    assert response.status_code == 200
-    assert response.json()["msg"] == "Appointment start-time must be before appointment end-time." 
-    assert response.json()["data"] == None
+    response = client.post("/appointment/book/", json = {"user_id" : "User4", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(1)), "start_time" : str(datetime.time(9,00)), "end_time" : str(datetime.time(8, 45))})  
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "Value error, Appointment end time must be greater than event start time" 
     
 def test_add_additional_appointments():
-    response = client.post("/appointment/book/", json = {"user_id" : "User5", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(1)), "start_time" : str(datetime.time(9,00)), "end_time" : str(datetime.time(9, 30))})  
-    response = client.post("/appointment/book/", json = {"user_id" : "User6", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(2)), "start_time" : str(datetime.time(14,00)), "end_time" : str(datetime.time(15, 00))})  
-    response = client.post("/appointment/book/", json = {"user_id" : "User7", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(1)), "start_time" : str(datetime.time(12,30)), "end_time" : str(datetime.time(13, 00))})  
-    response = client.post("/appointment/book/", json = {"user_id" : "User8", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(3)), "start_time" : str(datetime.time(12,00)), "end_time" : str(datetime.time(12, 30))})   
+    response = client.post("/appointment/book/", json = {"user_id" : "User5", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(1)), "start_time" : str(datetime.time(9,00)), "end_time" : str(datetime.time(9, 15))})  
+    response = client.post("/appointment/book/", json = {"user_id" : "User6", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(2)), "start_time" : str(datetime.time(14,00)), "end_time" : str(datetime.time(14, 15))})  
+    response = client.post("/appointment/book/", json = {"user_id" : "User7", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(1)), "start_time" : str(datetime.time(12,30)), "end_time" : str(datetime.time(12, 45))})  
+    response = client.post("/appointment/book/", json = {"user_id" : "User8", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(3)), "start_time" : str(datetime.time(12,00)), "end_time" : str(datetime.time(12, 15))})   
 
 def test_book_appointment_user_already_booked():
     """
     Test a user who already has an appointment cannot add an additional appointment
     """
-    response = client.post("/appointment/book/", json = {"user_id" : "User1", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(2)), "start_time" : str(datetime.time(10,00)), "end_time" : str(datetime.time(10, 30))})
+    response = client.post("/appointment/book/", json = {"user_id" : "User1", "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(2)), "start_time" : str(datetime.time(10,00)), "end_time" : str(datetime.time(10, 15))})
     assert response.status_code == 200
     assert response.json()["msg"] == "Booking not available, User is already booked"
     assert response.json()["data"] == None
@@ -103,7 +111,7 @@ def test_book_appointment_invalid_values():
     """
     Test if user_id isn't a string
     """
-    response = client.post("/appointment/book/", json = {"user_id" : 123, "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(2)), "start_time" : str(datetime.time(10,00)), "end_time" : str(datetime.time(10, 30))})
+    response = client.post("/appointment/book/", json = {"user_id" : 123, "description" : "Vaccine", "date"  : str(datetime.datetime.now().date() + datetime.timedelta(2)), "start_time" : str(datetime.time(10,00)), "end_time" : str(datetime.time(10, 15))})
     assert response.status_code == 422
     assert response.json()["detail"][0]["msg"] == 'Input should be a valid string'
 

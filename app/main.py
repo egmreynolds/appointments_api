@@ -5,6 +5,10 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 
+#from slowapi import Limiter, _rate_limit_exceeded_handler
+#from slowapi.util import get_remote_address
+#from slowapi.errors import RateLimitExceeded
+
 from . import crud, models, schemas
 from .database import SessionLocal, engine
 
@@ -16,7 +20,12 @@ async def lifespan(app: FastAPI):
     # Shutdown:
     pass
 
+#limiter = Limiter(key_func=get_remote_address, default_limits=["5/second"])
+
 app = FastAPI(lifespan = lifespan)
+
+#app.state.limiter = limiter
+#app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Dependency
 def get_db():
@@ -68,9 +77,6 @@ async def book_appointment(appointment: schemas.AppointmentCreate, db: Session =
     if true - > Book appointment
     Return Bool if appointment is successfully booked
     """
-    valid, validation_text = check_appointment_valid(appointment)
-    if not valid:
-        return {"msg": validation_text, "data" : None}    
     if crud.get_appointment_date_and_time(db = db, date = appointment.date, start_time = appointment.start_time, end_time = appointment.end_time) == []:
         if crud.get_all_appointments_by_user(db = db, user_id = appointment.user_id) == []:
             crud.create_appointment(db = db, appointment = appointment)
@@ -92,18 +98,3 @@ async def cancel_appointment(user_id: str, date : datetime.date, db = Depends(ge
         return {"msg" : "Booking Deleted", "data" : output}
     
     return {"msg" : "No booking deleted", "data" : None}
-
-
-def check_appointment_valid(appointment: schemas.AppointmentCreate):
-    """
-    Function to check the AppointmentCreate Object is valid
-    - Start_Time < End_Time
-    - Start_Time > Time_Now
-        NOTE: While these datetime's work, there may be issues with timezone that have not been resolved.
-    """
-    if appointment.start_time > appointment.end_time:
-        return (False, "Appointment start-time must be before appointment end-time.")
-    if datetime.datetime.combine(appointment.date, appointment.start_time, tzinfo = None) < datetime.datetime.now():
-        return (False, "Appointment start-time must be in the future.")
-    
-    return (True, "Appointment is valid.")
