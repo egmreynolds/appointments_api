@@ -145,7 +145,10 @@ def test_get_appointment_status():
     end_time = str(datetime.time(13, 30))    
     response = client.get("/appointment/check/", params = {"date" :  date, "start_time" : start_time, "end_time" : end_time})
     assert response.status_code == 200, response.text
-    assert response.json() == {"msg": "Appointment Status", "data" : "Unavailable"}
+    assert response.json()["data"] == "Unavailable"
+    assert len(response.json()["clashes"]) == 1
+    assert response.json()["clashes"][0]["start_time"] == "13:00:00"
+    assert response.json()["clashes"][0]["end_time"] == "13:15:00"
 
 def test_get_appointment_status_does_not_exist():
     """

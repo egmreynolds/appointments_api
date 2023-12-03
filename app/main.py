@@ -22,7 +22,15 @@ async def lifespan(app: FastAPI):
 
 #limiter = Limiter(key_func=get_remote_address, default_limits=["5/second"])
 
-app = FastAPI(lifespan = lifespan)
+app = FastAPI(
+    lifespan = lifespan,
+    title="AppointmentsApp",
+    description="AppointmentsApp helps book, check, and cancel Vaccination Appointments",
+    version="0.0.1",
+    contact={
+        "name": "egmreynolds",
+    },
+)
 
 #app.state.limiter = limiter
 #app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -45,26 +53,28 @@ def read_main():
 @app.get("/appointment/check/")
 async def get_appointment_status(date: datetime.date, start_time: datetime.time, end_time: datetime.time, db: Session = Depends(get_db)):
     """
-    Return Bool whether appointment time is booked or not.    
+    Return whether specific appointment time is available or not.
+    If there are clashes, these are returned as well, which allows a user to make more informed bookings.  
     """
-    print("test")
-    if crud.get_appointment_date_and_time(db = db, date = date, start_time = start_time, end_time = end_time) == []:
+    possible_clashes = crud.get_appointment_date_and_time(db = db, date = date, start_time = start_time, end_time = end_time)
+    if possible_clashes == []:
         return {"msg" : "Appointment Status", "data" : "Available"}
     
-    return {"msg" : "Appointment Status", "data" : "Unavailable"}
+    return {"msg" : "Appointment Status", "data" : "Unavailable", "clashes" : possible_clashes}
 
 @app.get("/appointment/check/all")
 async def get_appointments(db: Session = Depends(get_db)):
     """
-    Return all timeslots with availability
+    Return all timeslot that are taken
     """
     appointments = crud.get_all_appointments(db = db)
     return appointments
 
 @app.get("/appointment/check/all_available/{date}")
-async def get_appointments_day(date: datetime.date, db: Session = Depends(get_db)):
+async def get_appointments_by_day(date: datetime.date, db: Session = Depends(get_db)):
     """
-    Return all timeslots with availability for {day}
+    Return all timeslots which are unavailable for {date}
+    Useful when making your first booking
     """
     return crud.get_all_appointments_by_date(db = db, date = date)
 
@@ -75,7 +85,7 @@ async def book_appointment(appointment: schemas.AppointmentCreate, db: Session =
     Check appointment is available
     Check user_id hasn't already booked
     if true - > Book appointment
-    Return Bool if appointment is successfully booked
+    Return Success if appointment is successfully booked
     """
     if crud.get_appointment_date_and_time(db = db, date = appointment.date, start_time = appointment.start_time, end_time = appointment.end_time) == []:
         if crud.get_all_appointments_by_user(db = db, user_id = appointment.user_id) == []:
@@ -91,7 +101,7 @@ async def cancel_appointment(user_id: str, date : datetime.date, db = Depends(ge
     """
     Check {user_id} has made an appointment
     If true -> Remove from database [set status to available]
-    Return Bool
+    Return Status
     """
     output = crud.delete_appointment(db = db, user_id = user_id, date = date)
     if output:

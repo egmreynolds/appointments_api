@@ -18,7 +18,19 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
+### Documentation:
 
+When live, API documentation can be found at:
+
+```
+http://127.0.0.1:8000/docs
+```
+
+or
+
+```
+http://127.0.0.1:8000/redoc
+```
 
 
 
